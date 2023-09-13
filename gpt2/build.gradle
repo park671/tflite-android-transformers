@@ -9,13 +9,18 @@ android {
 
 
     defaultConfig {
-        applicationId "co.huggingface.android_transformers.gpt2"
+        applicationId "com.park.tensorflow.gpt2"
         minSdkVersion 26
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                abiFilters "arm64-v8a"
+                cppFlags ''
+            }
+        }
     }
 
     aaptOptions {
@@ -38,6 +43,10 @@ android {
     }
 
     sourceSets { main { assets.srcDirs = ['src/main/assets', 'src/main/assets/'] } }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 apply from: 'download.gradle'

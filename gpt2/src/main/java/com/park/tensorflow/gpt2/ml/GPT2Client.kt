@@ -1,16 +1,18 @@
-package co.huggingface.android_transformers.gpt2.ml
+package com.park.tensorflow.gpt2.ml
 
 import android.app.Application
-import android.text.Spannable
-import android.text.SpannableStringBuilder
 import android.util.JsonReader
-import android.widget.TextView
-import androidx.core.content.res.ResourcesCompat
-import androidx.databinding.BindingAdapter
-import androidx.lifecycle.*
-import co.huggingface.android_transformers.gpt2.R
-import co.huggingface.android_transformers.gpt2.tokenization.GPT2Tokenizer
-import kotlinx.coroutines.*
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
+import com.park.tensorflow.gpt2.tokenization.GPT2Tokenizer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.tensorflow.lite.Interpreter
 import java.io.BufferedReader
 import java.io.FileInputStream
@@ -39,17 +41,6 @@ class GPT2Client(application: Application) : AndroidViewModel(application) {
     private lateinit var tokenizer: GPT2Tokenizer
     private lateinit var tflite: Interpreter
 
-    private val prompts = arrayOf(
-        "Before boarding your rocket to Mars, remember to pack these items",
-        "In a shocking finding, scientist discovered a herd of unicorns living in a remote, previously unexplored valley, in the Andes Mountains. Even more surprising to the researchers was the fact that the unicorns spoke perfect English.",
-        "Legolas and Gimli advanced on the orcs, raising their weapons with a harrowing war cry.",
-        "Today, scientists confirmed the worst possible outcome: the massive asteroid will collide with Earth",
-        "Hugging Face is a company that releases awesome projects in machine learning because"
-    )
-
-    private val _prompt = MutableLiveData(prompts.random())
-    val prompt: LiveData<String> = _prompt
-
     private val _completion = MutableLiveData("")
     val completion: LiveData<String> = _completion
 
@@ -71,21 +62,17 @@ class GPT2Client(application: Application) : AndroidViewModel(application) {
         tflite.close()
     }
 
-    fun launchAutocomplete() {
+    fun launchAutocompleteWithCallback(prompt: String, callback: GptCallback) {
         autocompleteJob = viewModelScope.launch {
             initJob.join()
             autocompleteJob?.cancelAndJoin()
-            _completion.value = ""
-            generate(_prompt.value!!)
+            callback.onResult("$prompt")
+            _completion.value = "$prompt\n"
+            generate(prompt, callback = callback)
         }
     }
 
-    fun refreshPrompt() {
-        _prompt.value = prompts.random()
-        launchAutocomplete()
-    }
-
-    private suspend fun generate(text: String, nbTokens: Int = 100) = withContext(Dispatchers.Default) {
+    private suspend fun generate(text: String, nbTokens: Int = 200, callback: GptCallback? = null) = withContext(Dispatchers.Default) {
         val tokens = tokenizer.encode(text)
         repeat (nbTokens) {
             val maxTokens    = tokens.takeLast(SEQUENCE_LENGTH).toIntArray()
@@ -121,7 +108,7 @@ class GPT2Client(application: Application) : AndroidViewModel(application) {
             tokens.add(nextToken)
             val decodedToken = tokenizer.decode(listOf(nextToken))
             _completion.postValue(_completion.value + decodedToken)
-
+            callback?.onResult(_completion.value)
             yield()
         }
     }
@@ -199,18 +186,4 @@ private fun FloatArray.argmax(): Int {
     }
 
     return bestIndex
-}
-
-@BindingAdapter("prompt", "completion")
-fun TextView.formatCompletion(prompt: String, completion: String): Unit {
-    text = when {
-        completion.isEmpty() -> prompt
-        else -> {
-            val str = SpannableStringBuilder(prompt + completion)
-            val bgCompletionColor = ResourcesCompat.getColor(resources, R.color.colorPrimary, context.theme)
-            str.setSpan(android.text.style.BackgroundColorSpan(bgCompletionColor), prompt.length, str.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-
-            str
-        }
-    }
 }

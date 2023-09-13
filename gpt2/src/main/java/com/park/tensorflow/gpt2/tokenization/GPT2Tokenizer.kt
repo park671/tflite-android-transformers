@@ -1,4 +1,4 @@
-package co.huggingface.android_transformers.gpt2.tokenization
+package com.park.tensorflow.gpt2.tokenization
 
 class GPT2Tokenizer(
         private val encoder: Map<String, Int>,

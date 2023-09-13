@@ -158,7 +158,7 @@ public class QaActivity extends AppCompatActivity {
             this,
             status -> {
               if (status == TextToSpeech.SUCCESS) {
-                textToSpeech.setLanguage(Locale.US);
+                textToSpeech.setLanguage(Locale.CHINA);
               } else {
                 textToSpeech = null;
               }
@@ -256,7 +256,7 @@ public class QaActivity extends AppCompatActivity {
 
     // Use TTS to speak out the answer.
     if (textToSpeech != null) {
-      textToSpeech.speak(answer.text, TextToSpeech.QUEUE_FLUSH, null, answer.text);
+      textToSpeech.speak("羊玩球今天为什么不玩球啊？家人们", TextToSpeech.QUEUE_FLUSH, null, answer.text);
     }
   }
 }

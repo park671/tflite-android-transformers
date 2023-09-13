@@ -1,4 +1,4 @@
-package co.huggingface.android_transformers.gpt2.tokenization
+package com.park.tensorflow.gpt2.tokenization
 
 internal val byteEncoder: Map<Int, String> by lazy {
     hashMapOf<Int, String>().apply {
